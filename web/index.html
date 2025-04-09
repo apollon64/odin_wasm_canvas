@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	  
+	  <script type="text/javascript" src="odin.js"></script>
+    <script type="text/javascript">
+      async function init() {
+
+        // Create our memory interface. While we don't specify any specific memory
+        // configuration, we'll use the interface to reference our exported Odin function.
+        const memInterface = new odin.WasmMemoryInterface();
+        //const mem = new WebAssembly.Memory({ initial: 2000, maximum: 65536, shared: false });
+			  //const memInterface = new odin.WasmMemoryInterface();
+			  //memInterface.setMemory(mem);
+        const extern_functions = {
+      _get_platform_name: () => {
+        console.log("javascript")
+      },
+    }
+
+        await odin.runWasm("index.wasm", null, {extern_functions}, memInterface);
+        // Now after the WASM module is loaded, we can access our exported functions.
+        const exports = memInterface.exports;
+
+        const width = 300;
+        const height = 300;
+
+        const canvas = document.getElementById("demo-canvas");
+        canvas.width = width;
+        canvas.height = height;
+		    console.log(exports);
+    
+        //const buffer_address = exports.memory.BUFFER;
+        const buffer_address = exports.getBuf();
+        const image = new ImageData(
+            new Uint8ClampedArray(
+                exports.memory.buffer,
+                buffer_address,
+                4 * width * height,
+            ),
+            width,
+        );
+        exports.go();
+        const ctx = canvas.getContext("2d");
+        ctx.putImageData(image, 0, 0);
+
+        // CHANGES BEGIN HERE
+        const render = () => {
+          exports.go2();
+          ctx.putImageData(image, 0, 0);
+          requestAnimationFrame(render);
+        };
+
+        render();
+
+      }
+
+      init();
+    </script>
+  </head>
+  <body>
+    <canvas id="demo-canvas"></canvas>
+  </body>
+</html>
